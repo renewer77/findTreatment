@@ -1,0 +1,21 @@
+{
+  "name": "find-treatment-prototype",
+  "version": "1.0.0",
+  "description": "Speech-to-Text prototype website for Find Treatment application",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8000 -o",
+    "serve": "http-server"
+  },
+  "keywords": [
+    "speech-recognition",
+    "speech-to-text",
+    "prototype",
+    "web-api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

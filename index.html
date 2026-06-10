@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Treatment - FindTreatment.gov Prototype</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background-color: white;
+            border-bottom: 1px solid #ddd;
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e5a7a;
+            text-decoration: none;
+        }
+
+        .logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        nav {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        nav a {
+            color: #1e5a7a;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        nav a:hover {
+            color: #2c7aa5;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #1e5a7a 0%, #2c7aa5 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+
+        .hero h2 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 16px;
+            margin-bottom: 40px;
+            opacity: 0.95;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero strong {
+            font-weight: 600;
+        }
+
+        /* Search Box */
+        .search-box-wrapper {
+            max-width: 900px;
+            margin: 0 auto 30px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-icon {
+            padding: 0 16px;
+            color: #999;
+            font-size: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            padding: 16px 0;
+            font-size: 16px;
+            outline: none;
+            color: #333;
+        }
+
+        .search-input::placeholder {
+            color: #999;
+        }
+
+        .mic-button-hero {
+            background: none;
+            border: none;
+            padding: 0 16px;
+            cursor: pointer;
+            color: #1e5a7a;
+            font-size: 20px;
+            transition: color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .mic-button-hero:hover {
+            color: #2c7aa5;
+        }
+
+        .mic-button-hero svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        /* Facility Registration */
+        .facility-link {
+            font-size: 14px;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .facility-link a {
+            color: white;
+            text-decoration: underline;
+            font-weight: 600;
+            transition: opacity 0.2s ease;
+        }
+
+        .facility-link a:hover {
+            opacity: 0.9;
+        }
+
+        /* Resources Section */
+        .resources {
+            background-color: white;
+            padding: 60px 20px;
+        }
+
+        .resources-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .resources h2 {
+            text-align: center;
+            font-size: 32px;
+            color: #1e5a7a;
+            margin-bottom: 50px;
+            font-weight: 700;
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .resource-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .resource-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #1e5a7a;
+        }
+
+        .resource-card h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .resource-card p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .resource-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .resource-link {
+            display: inline-block;
+            color: #1e5a7a;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 13px;
+            transition: color 0.2s ease;
+        }
+
+        .resource-link:hover {
+            color: #2c7aa5;
+            text-decoration: underline;
+        }
+
+        .phone-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e5a7a;
+            margin-top: 15px;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #333;
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            nav {
+                flex-wrap: wrap;
+                gap: 15px;
+                justify-content: center;
+            }
+
+            nav a {
+                font-size: 13px;
+            }
+
+            .hero h1 {
+                font-size: 24px;
+            }
+
+            .hero h2 {
+                font-size: 32px;
+            }
+
+            .hero p {
+                font-size: 14px;
+            }
+
+            .search-input {
+                font-size: 14px;
+            }
+
+            .resources-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <a href="#" class="logo">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" fill="currentColor"/>
+                </svg>
+                FindTreatment.gov
+            </a>
+            <nav>
+                <a href="#home">Home</a>
+                <a href="speachToText.html">Search for Treatment</a>
+                <a href="#agencies">State Agencies</a>
+                <a href="#facilities">Facility Registration</a>
+                <a href="#faqs">FAQs</a>
+                <a href="#help">Help</a>
+                <a href="#about">About</a>
+                <a href="#contact">Contact Us</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <h1>Millions of Americans have mental and substance use disorders.</h1>
+            <h2>Find treatment here...</h2>
+            <p>Welcome to <strong>FindTreatment.gov</strong>, the confidential and anonymous resource for persons seeking treatment for mental and substance use disorders in the United States and its territories.</p>
+            
+            <div class="search-box-wrapper">
+                <div class="search-box">
+                    <div class="search-icon">🔍</div>
+                    <input 
+                        type="text" 
+                        id="heroSearchInput"
+                        class="search-input" 
+                        placeholder="Enter your city, state and/or ZIP or search for treatment..."
+                    >
+                    <button id="heroMicButton" class="mic-button-hero" title="Use voice search">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="facility-link">
+                Do you manage a facility? <a href="#register">Click here to register with FindTreatment.gov</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Resources Section -->
+    <section class="resources">
+        <div class="resources-container">
+            <h2>Additional Help Resources</h2>
+            <div class="resources-grid">
+                <!-- 988 Card -->
+                <div class="resource-card">
+                    <h3>988 Suicide & Crisis Lifeline</h3>
+                    <p>Free and confidential support for people in distress, 24/7.</p>
+                    <div class="resource-links">
+                        <a href="#" class="resource-link">Visit Website ↗</a>
+                    </div>
+                    <div class="phone-number">Call or text 988</div>
+                </div>
+
+                <!-- National Helpline Card -->
+                <div class="resource-card">
+                    <h3>National Helpline</h3>
+                    <p>Treatment referral and information, 24/7.</p>
+                    <div class="resource-links">
+                        <a href="#" class="resource-link">Visit Website ↗</a>
+                    </div>
+                    <div class="phone-number">Call 1-800-662-HELP (4357)</div>
+                </div>
+
+                <!-- Disaster Distress Card -->
+                <div class="resource-card">
+                    <h3>Disaster Distress Helpline</h3>
+                    <p>Immediate crisis counseling related to disasters, 24/7.</p>
+                    <div class="resource-links">
+                        <a href="#" class="resource-link">Visit Website ↗</a>
+                    </div>
+                    <div class="phone-number">Call 1-800-985-5990</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <p>&copy; 2026 U.S. Department of Health & Human Services. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Handle extension message errors gracefully
+        window.addEventListener('message', (event) => {
+            if (event.source !== window) return;
+        }, false);
+
+        window.addEventListener('unhandledrejection', (event) => {
+            if (event.reason && event.reason.message && 
+                event.reason.message.includes('message channel closed')) {
+                event.preventDefault();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const heroSearchInput = document.getElementById('heroSearchInput');
+            const heroMicButton = document.getElementById('heroMicButton');
+
+            // Check for SpeechRecognition support
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                console.log("Speech Recognition not supported in this browser.");
+                heroMicButton.style.display = 'none';
+                return;
+            }
+
+            // Make the microphone button visible
+            heroMicButton.style.display = 'flex';
+
+            // Initialize recognition for hero search
+            const heroRecognition = new SpeechRecognition();
+            heroRecognition.continuous = false;
+            heroRecognition.interimResults = true;
+            heroRecognition.lang = 'en-US';
+
+            let heroListening = false;
+
+            heroMicButton.addEventListener('click', () => {
+                if (heroListening) {
+                    heroRecognition.stop();
+                } else {
+                    heroRecognition.start();
+                }
+            });
+
+            heroRecognition.onstart = () => {
+                heroListening = true;
+                heroMicButton.style.opacity = '0.5';
+                heroSearchInput.placeholder = 'Listening... Speak now...';
+            };
+
+            heroRecognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    heroSearchInput.value = finalTranscript;
+                } else {
+                    heroSearchInput.value = interimTranscript;
+                }
+            };
+
+            heroRecognition.onend = () => {
+                heroListening = false;
+                heroMicButton.style.opacity = '1';
+                heroSearchInput.placeholder = 'Enter your city, state and/or ZIP or search for treatment...';
+                
+                // Redirect to search page with the query if available
+                if (heroSearchInput.value.trim()) {
+                    window.location.href = 'speachToText.html?query=' + encodeURIComponent(heroSearchInput.value);
+                }
+            };
+
+            heroRecognition.onerror = (event) => {
+                heroListening = false;
+                heroMicButton.style.opacity = '1';
+                heroSearchInput.placeholder = 'Enter your city, state and/or ZIP or search for treatment...';
+                console.log("Speech recognition error:", event.error);
+            };
+
+            // Handle Enter key in search box
+            heroSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && heroSearchInput.value.trim()) {
+                    window.location.href = 'speachToText.html?query=' + encodeURIComponent(heroSearchInput.value);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

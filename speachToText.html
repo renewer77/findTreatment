@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search for Treatment - Voice Enabled</title>
+    
+    <!-- DEBUG SCRIPT - RUNS IMMEDIATELY -->
+    <script>
+        window.debugLogs = [];
+        window.maxLogs = 100;
+
+        window.addDebugLog = function(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            window.debugLogs.push({ msg: logEntry, type });
+            
+            if (window.debugLogs.length > window.maxLogs) {
+                window.debugLogs.shift();
+            }
+
+            // Try to update DOM immediately
+            const debugLogsDiv = document.getElementById('debugLogs');
+            if (debugLogsDiv) {
+                const logElement = document.createElement('div');
+                logElement.className = `debug-log debug-${type}`;
+                logElement.textContent = logEntry;
+                logElement.style.cssText = 'margin-bottom: 2px; padding: 2px 0; border-bottom: 1px solid #333; word-break: break-word;';
+                debugLogsDiv.appendChild(logElement);
+                debugLogsDiv.scrollTop = debugLogsDiv.scrollHeight;
+            }
+
+            // Also log to browser console
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        };
+
+        window.toggleDebugPanel = function() {
+            const panel = document.getElementById('debugPanel');
+            if (panel) {
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+        };
+
+        // Check security context
+        window.checkSecurityContext = function() {
+            const isHttps = window.location.protocol === 'https:';
+            const isDomain = window.location.hostname;
+            const isSecure = window.isSecureContext;
+            
+            document.getElementById('httpsCheck').textContent = isHttps ? '✅ HTTPS' : '❌ HTTP';
+            document.getElementById('domainCheck').textContent = isDomain || 'localhost';
+            document.getElementById('secureCheck').textContent = isSecure ? '✅ Secure' : '❌ Not Secure';
+            
+            window.addDebugLog('📡 Protocol: ' + window.location.protocol, 'info');
+            window.addDebugLog('📡 Host: ' + window.location.hostname, 'info');
+            window.addDebugLog('🔒 Secure Context: ' + isSecure, isSecure ? 'success' : 'warning');
+            
+            if (!isHttps) {
+                window.addDebugLog('⚠️ WARNING: Not HTTPS! Speech API may not work.', 'warning');
+            }
+            if (!isSecure) {
+                window.addDebugLog('⚠️ WARNING: Not a secure context! Speech API requires HTTPS.', 'error');
+            }
+        };
+
+        // Log immediately
+        window.addDebugLog('🚀 Page script loaded', 'info');
+        window.addDebugLog('Device: ' + navigator.userAgent.substring(0, 60), 'info');
+        window.checkSecurityContext();
+    </script>
+
+    <style>
+        :root {
+            --primary-color: #1e5a7a;
+            --primary-light: #2c7aa5;
+            --mic-active-color: #0066cc;
+            --bg-color: #f5f7fa;
+            --border-color: #d0d0d0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #1e5a7a 0%, #2c7aa5 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .search-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+            position: relative;
+        }
+
+        .search-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-label .required {
+            color: #d32f2f;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            width: 100%;
+            height: 44px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 12px 16px;
+            padding-right: 48px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(46, 122, 165, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: #999;
+        }
+
+        /* Microphone Button styling */
+        .mic-button {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            color: #666;
+        }
+
+        .mic-button:hover:not(.listening) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .mic-button svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Active Listening State */
+        .mic-button.listening {
+            animation: pulse 1.5s infinite;
+            color: var(--mic-active-color);
+            background-color: rgba(0, 102, 204, 0.1);
+        }
+
+        /* Filters Section */
+        .filters-section {
+            margin-bottom: 30px;
+        }
+
+        .filters-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+        }
+
+        .filter-tag {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 13px;
+            color: #1e5a7a;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .filter-tag:hover {
+            background: #bbdefb;
+            border-color: #64b5f6;
+        }
+
+        .filter-tag.active {
+            background: #1e5a7a;
+            color: white;
+            border-color: #1e5a7a;
+        }
+
+        /* Status Indicator text */
+        .status-text {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 13px;
+            color: var(--mic-active-color);
+            height: 20px;
+            font-weight: 500;
+            min-height: 20px;
+        }
+
+        /* Bottom Actions */
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 35px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-text {
+            background: none;
+            color: var(--primary-light);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-text:hover {
+            background: #f5f7fa;
+            border-color: var(--primary-light);
+        }
+
+        .btn-primary {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(30, 90, 122, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--primary-light);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #f5f7fa;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 102, 204, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0); }
+        }
+
+        /* Debug Panel */
+        .debug-panel {
+            position: fixed;
+            bottom: 10px !important;
+            right: 10px !important;
+            background: #1a1a1a;
+            color: #0f0;
+            border: 2px solid #0f0;
+            border-radius: 4px;
+            padding: 10px;
+            width: 350px;
+            max-width: 90vw;
+            max-height: 400px;
+            min-height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 11px;
+            z-index: 99999 !important;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        .debug-title {
+            font-weight: bold;
+            color: #0f0;
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: #1a1a1a;
+        }
+
+        .debug-close {
+            cursor: pointer;
+            color: #0f0;
+            font-weight: bold;
+            padding: 0 5px;
+            user-select: none;
+        }
+
+        .debug-logs-container {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .debug-log {
+            margin-bottom: 2px;
+            padding: 2px 5px;
+            border-bottom: 1px solid #333;
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        .debug-error {
+            color: #ff6b6b;
+            background-color: rgba(255, 107, 107, 0.1);
+        }
+
+        .debug-warning {
+            color: #ffd700;
+            background-color: rgba(255, 215, 0, 0.1);
+        }
+
+        .debug-info {
+            color: #0f0;
+        }
+
+        .debug-success {
+            color: #00ff00;
+            background-color: rgba(0, 255, 0, 0.1);
+        }
+
+        .cloudflare-warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #856404;
+            font-size: 13px;
+        }
+
+        .cloudflare-warning strong {
+            color: #d39e00;
+        }
+
+        .cloudflare-warning ol {
+            margin: 8px 0 0 20px;
+            padding: 0;
+        }
+
+        .cloudflare-warning li {
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .search-container {
+                padding: 30px 20px;
+            }
+
+            .filters-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .debug-panel {
+                max-width: 320px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="modal-overlay">
+        <div class="search-container">
+
+            <h2 class="search-title">Search for Treatment</h2>
+
+            <!-- Cloudflare Tunnel Warning for Safari Users -->
+            <div id="tunnelWarning" class="cloudflare-warning" style="display: none;">
+                <strong>⚠️ Cloudflare Tunnel Detected:</strong> Speech-to-text may not work on Safari with Cloudflare tunnels due to browser restrictions. 
+                <br><strong>Solutions:</strong>
+                <ol>
+                    <li>Try using Chrome, Edge, or Brave browser instead</li>
+                    <li>Access via direct localhost/IP without tunnel</li>
+                    <li>Use ngrok tunnel instead of Cloudflare</li>
+                </ol>
+            </div>
+
+            <!-- Location Input -->
+            <div class="form-group">
+                <label class="form-label">Location: <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <input type="text" id="locationInput" class="search-input" placeholder="Enter your city, state and/or ZIP">
+                    <button id="locationMicButton" class="mic-button" title="Use voice for location">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="status-text" id="locationStatus"></div>
+            </div>
+
+            <!-- What are you looking for -->
+            <div class="form-group">
+                <label class="form-label">What are you looking for?:</label>
+                <div class="input-wrapper">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Start typing what you are looking for...">
+                    <button id="micButton" class="mic-button" title="Use voice to search">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="status-text" id="statusText"></div>
+            </div>
+
+            <!-- Popular Filters -->
+            <div class="filters-section">
+                <label class="filters-label">Use the following popular filters to help narrow your search:</label>
+                <div class="filters-grid">
+                    <button type="button" class="filter-tag" data-filter="alcohol-treatment">Alcohol Treatment</button>
+                    <button type="button" class="filter-tag" data-filter="opioid-treatment">Opioid Treatment Centers</button>
+                    <button type="button" class="filter-tag" data-filter="recovery-support">Recovery Support Services</button>
+                    <button type="button" class="filter-tag" data-filter="adults">Adults</button>
+                    <button type="button" class="filter-tag" data-filter="children">Children</button>
+                    <button type="button" class="filter-tag" data-filter="outpatient">Outpatient</button>
+                    <button type="button" class="filter-tag" data-filter="residential">Residential/24-hour residential</button>
+                    <button type="button" class="filter-tag" data-filter="federal-funding">Federal or any government funding</button>
+                    <button type="button" class="filter-tag" data-filter="ihs-tribal">IHS/Tribal/Urban (ITU) funds</button>
+                    <button type="button" class="filter-tag" data-filter="medicare">Medicare</button>
+                    <button type="button" class="filter-tag" data-filter="medicaid">Medicaid</button>
+                    <button type="button" class="filter-tag" data-filter="military-insurance">Federal military insurance</button>
+                    <button type="button" class="filter-tag" data-filter="private-insurance">Private health insurance</button>
+                    <button type="button" class="filter-tag" data-filter="self-payment">Cash or self-payment</button>
+                    <button type="button" class="filter-tag" data-filter="state-funded">State-financed health insurance plan</button>
+                    <button type="button" class="filter-tag" data-filter="samhsa">SAMHSA funding/block grants</button>
+                    <button type="button" class="filter-tag" data-filter="veterans">Veterans Affairs</button>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="advancedSearch()">Advanced Search Options</button>
+                <button type="button" class="btn btn-secondary" onclick="closeSearch()">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitSearch()">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Panel - ALWAYS VISIBLE -->
+    <div id="debugPanel" class="debug-panel" style="display: block !important;">
+        <div class="debug-title">
+            🐛 DEBUG CONSOLE
+            <span class="debug-close" onclick="window.toggleDebugPanel()" style="cursor: pointer; user-select: none;">✕</span>
+        </div>
+        <div id="debugLogs" class="debug-logs-container" style="background: #1a1a1a; color: #0f0;"></div>
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #0f0; font-size: 10px; color: #ffd700;">
+            <div><strong>HTTPS:</strong> <span id="httpsCheck">Checking...</span></div>
+            <div><strong>Domain:</strong> <span id="domainCheck">Checking...</span></div>
+            <div><strong>Secure:</strong> <span id="secureCheck">Checking...</span></div>
+        </div>
+    </div>
+
+    <script>
+        // SECOND INITIALIZATION - After DOM ready
+        window.addDebugLog('📄 DOM is loading...', 'info');
+        window.addEventListener('message', (event) => {
+            if (event.source !== window) return;
+        }, false);
+
+        window.addEventListener('unhandledrejection', (event) => {
+            window.addDebugLog('UNHANDLED REJECTION: ' + event.reason, 'error');
+            if (event.reason && event.reason.message && 
+                event.reason.message.includes('message channel closed')) {
+                event.preventDefault();
+            }
+        });
+
+        // Capture uncaught errors
+        window.addEventListener('error', (event) => {
+            window.addDebugLog(`UNCAUGHT ERROR: ${event.message}`, 'error');
+        }, true);
+
+        // Track selected filters
+        let selectedFilters = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.addDebugLog('✅ DOMContentLoaded fired', 'success');
+            
+            const locationInput = document.getElementById('locationInput');
+            const searchInput = document.getElementById('searchInput');
+            const micButton = document.getElementById('micButton');
+            const locationMicButton = document.getElementById('locationMicButton');
+            const statusText = document.getElementById('statusText');
+            const locationStatus = document.getElementById('locationStatus');
+
+            if (!locationInput) {
+                window.addDebugLog('❌ ERROR: locationInput element not found!', 'error');
+                return;
+            }
+            window.addDebugLog('✅ All form elements found', 'success');
+
+            // Filter tag interactions
+            document.querySelectorAll('.filter-tag').forEach(tag => {
+                tag.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    tag.classList.toggle('active');
+                    const filter = tag.dataset.filter;
+                    if (tag.classList.contains('active')) {
+                        if (!selectedFilters.includes(filter)) {
+                            selectedFilters.push(filter);
+                        }
+                    } else {
+                        selectedFilters = selectedFilters.filter(f => f !== filter);
+                    }
+                });
+            });
+
+            // Check for SpeechRecognition support
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                window.addDebugLog('❌ Speech Recognition NOT supported', 'error');
+                micButton.style.display = 'none';
+                locationMicButton.style.display = 'none';
+                window.addDebugLog('🔇 Mic buttons hidden', 'warning');
+                return;
+            }
+
+            window.addDebugLog('✅ Speech Recognition API available', 'success');
+
+            // Make the microphone buttons visible
+            micButton.style.display = 'flex';
+            locationMicButton.style.display = 'flex';
+            window.addDebugLog('✅ Mic buttons visible', 'success');
+
+            // Initialize recognition for search
+            try {
+                const searchRecognition = new SpeechRecognition();
+                searchRecognition.continuous = false;
+                searchRecognition.interimResults = true;
+                searchRecognition.lang = 'en-US';
+                
+                window.addDebugLog('✅ Search recognition created', 'success');
+
+                let searchListening = false;
+
+                micButton.addEventListener('click', () => {
+                    window.addDebugLog('🎤 Search mic clicked - Listening: ' + searchListening, 'info');
+                    if (searchListening) {
+                        searchRecognition.stop();
+                        window.addDebugLog('⏹️ Recognition stopped', 'info');
+                    } else {
+                        try {
+                            searchRecognition.start();
+                            window.addDebugLog('🎙️ Recognition started', 'success');
+                        } catch (e) {
+                            window.addDebugLog('❌ ERROR starting: ' + e.message, 'error');
+                        }
+                    }
+                });
+
+                searchRecognition.onstart = () => {
+                    window.addDebugLog('🎙️ Recognition onstart', 'success');
+                    searchListening = true;
+                    micButton.classList.add('listening');
+                    statusText.innerText = "Listening... Speak now.";
+                    searchInput.value = '';
+                };
+
+                searchRecognition.onresult = (event) => {
+                    window.addDebugLog('📝 Result: ' + event.results.length + ' results', 'info');
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                            window.addDebugLog('✍️ Final: ' + event.results[i][0].transcript, 'success');
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        searchInput.value = finalTranscript;
+                    } else {
+                        searchInput.value = interimTranscript;
+                    }
+                };
+
+                searchRecognition.onend = () => {
+                    window.addDebugLog('⏹️ Recognition onend', 'info');
+                    searchListening = false;
+                    micButton.classList.remove('listening');
+                    statusText.innerText = "";
+                };
+
+                searchRecognition.onerror = (event) => {
+                    window.addDebugLog('❌ Recognition ERROR: ' + event.error, 'error');
+                    window.addDebugLog('🔍 Error Code: ' + event.error, 'error');
+                    window.addDebugLog('🔍 IsTrusted: ' + event.isTrusted, 'error');
+                    
+                    searchListening = false;
+                    micButton.classList.remove('listening');
+                    
+                    let errorMsg = "";
+                    let troubleShoot = "";
+                    
+                    if (event.error === 'service-not-allowed') {
+                        errorMsg = "🔒 Service Not Allowed";
+                        troubleShoot = "This error occurs with Cloudflare tunnels on Safari. Try: 1) Use Chrome/Edge instead, 2) Access directly without tunnel, 3) Check Safari Settings → Privacy → Microphone is enabled for this site";
+                        window.addDebugLog('🚨 SERVICE-NOT-ALLOWED Error detected!', 'error');
+                        window.addDebugLog('ℹ️ This is a known issue with Cloudflare tunnels and Safari', 'warning');
+                        window.addDebugLog('ℹ️ Workaround 1: Try accessing via direct IP or localhost', 'warning');
+                        window.addDebugLog('ℹ️ Workaround 2: Use Chrome/Brave instead of Safari', 'warning');
+                        window.addDebugLog('ℹ️ Workaround 3: Use ngrok tunnel instead of Cloudflare', 'warning');
+                    } else if (event.error === 'not-allowed') {
+                        errorMsg = "🔒 Microphone Permission Denied";
+                        troubleShoot = "Microphone access was blocked. Check Settings → Privacy → Microphone";
+                        window.addDebugLog('🔒 Microphone permission denied by user', 'error');
+                    } else if (event.error === 'no-speech') {
+                        errorMsg = "🔇 No Speech Detected";
+                        troubleShoot = "Try speaking louder or closer to the microphone. Ensure no background noise.";
+                        window.addDebugLog('🔇 No speech detected', 'warning');
+                    } else if (event.error === 'network') {
+                        errorMsg = "📡 Network Error";
+                        troubleShoot = "Check internet connection or try again later.";
+                        window.addDebugLog('📡 Network connectivity issue', 'error');
+                    } else if (event.error === 'not-supported') {
+                        errorMsg = "❌ Not Supported";
+                        troubleShoot = "Your browser doesn't support Speech Recognition. Try Chrome, Edge, Safari, or Firefox.";
+                        window.addDebugLog('❌ Speech Recognition not supported in this browser', 'error');
+                    } else if (event.error === 'aborted') {
+                        errorMsg = "⏹️ Aborted";
+                        troubleShoot = "Recognition was stopped. Try again.";
+                        window.addDebugLog('⏹️ Speech recognition was aborted', 'info');
+                    } else {
+                        errorMsg = "⚠️ Unknown Error: " + event.error;
+                        troubleShoot = "An unexpected error occurred.";
+                        window.addDebugLog('⚠️ Unknown error: ' + event.error, 'error');
+                    }
+                    
+                    statusText.innerText = errorMsg + "\n" + troubleShoot;
+                };
+            } catch (e) {
+                window.addDebugLog('❌ ERROR creating search recognition: ' + e.message, 'error');
+            }
+
+            // Initialize recognition for location
+            try {
+                const locationRecognition = new SpeechRecognition();
+                locationRecognition.continuous = false;
+                locationRecognition.interimResults = true;
+                locationRecognition.lang = 'en-US';
+
+                window.addDebugLog('✅ Location recognition created', 'success');
+
+                let locationListening = false;
+
+                locationMicButton.addEventListener('click', () => {
+                    window.addDebugLog('📍 Location mic clicked - Listening: ' + locationListening, 'info');
+                    if (locationListening) {
+                        locationRecognition.stop();
+                        window.addDebugLog('⏹️ Location recognition stopped', 'info');
+                    } else {
+                        try {
+                            locationRecognition.start();
+                            window.addDebugLog('🎙️ Location recognition started', 'success');
+                        } catch (e) {
+                            window.addDebugLog('❌ ERROR starting location: ' + e.message, 'error');
+                        }
+                    }
+                });
+
+                locationRecognition.onstart = () => {
+                    window.addDebugLog('🎙️ Location onstart', 'success');
+                    locationListening = true;
+                    locationMicButton.classList.add('listening');
+                    locationStatus.innerText = "Listening...";
+                    locationInput.value = '';
+                };
+
+                locationRecognition.onresult = (event) => {
+                    window.addDebugLog('📍 Location result: ' + event.results.length + ' results', 'info');
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                            window.addDebugLog('📍 Location final: ' + event.results[i][0].transcript, 'success');
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        locationInput.value = finalTranscript;
+                    } else {
+                        locationInput.value = interimTranscript;
+                    }
+                };
+
+                locationRecognition.onend = () => {
+                    window.addDebugLog('⏹️ Location onend', 'info');
+                    locationListening = false;
+                    locationMicButton.classList.remove('listening');
+                    locationStatus.innerText = "";
+                };
+
+                locationRecognition.onerror = (event) => {
+                    window.addDebugLog('❌ Location ERROR: ' + event.error, 'error');
+                    window.addDebugLog('🔍 Error Code: ' + event.error, 'error');
+                    window.addDebugLog('🔍 IsTrusted: ' + event.isTrusted, 'error');
+                    
+                    locationListening = false;
+                    locationMicButton.classList.remove('listening');
+                    
+                    let errorMsg = "";
+                    let troubleShoot = "";
+                    
+                    if (event.error === 'service-not-allowed') {
+                        errorMsg = "🔒 Service Not Allowed";
+                        troubleShoot = "Cloudflare tunnel + Safari issue. Try Chrome or direct access.";
+                        window.addDebugLog('🚨 SERVICE-NOT-ALLOWED Error detected!', 'error');
+                        window.addDebugLog('ℹ️ This is a known issue with Cloudflare tunnels and Safari', 'warning');
+                    } else if (event.error === 'not-allowed') {
+                        errorMsg = "🔒 Permission Denied";
+                        troubleShoot = "Check microphone permissions in Settings.";
+                    } else if (event.error === 'no-speech') {
+                        errorMsg = "🔇 No Speech Detected";
+                        troubleShoot = "Try speaking louder or closer to the mic.";
+                    } else if (event.error === 'network') {
+                        errorMsg = "📡 Network Error";
+                        troubleShoot = "Check internet connection.";
+                    } else {
+                        errorMsg = "⚠️ Error: " + event.error;
+                        troubleShoot = "An error occurred. Try again.";
+                    }
+                    
+                    locationStatus.innerText = errorMsg + "\n" + troubleShoot;
+                };
+            } catch (e) {
+                window.addDebugLog('❌ ERROR creating location recognition: ' + e.message, 'error');
+            }
+
+            window.addDebugLog('🎉 All initialization complete!', 'success');
+        });
+
+        // Form action handlers
+        function submitSearch() {
+            const location = document.getElementById('locationInput').value.trim();
+            const searchTerm = document.getElementById('searchInput').value.trim();
+
+            window.addDebugLog('📤 Submit - Loc: ' + location + ', Term: ' + searchTerm, 'info');
+
+            if (!location) {
+                alert('Please enter a location.');
+                return;
+            }
+
+            const searchData = {
+                location: location,
+                searchTerm: searchTerm,
+                filters: selectedFilters
+            };
+
+            window.addDebugLog('📤 Submitted: ' + JSON.stringify(searchData), 'success');
+            alert('Search submitted!\nLocation: ' + location + '\nSearch: ' + searchTerm + '\nFilters: ' + selectedFilters.join(', '));
+        }
+
+        function advancedSearch() {
+            window.addDebugLog('🔍 Advanced search clicked', 'info');
+            alert('Advanced search options would open here.');
+        }
+
+        function closeSearch() {
+            window.addDebugLog('❌ Close clicked', 'info');
+            if (confirm('Close search form?')) {
+                document.querySelector('.modal-overlay').style.display = 'none';
+                window.addDebugLog('Modal closed', 'info');
+            }
+        }
+
+        // Log that script loaded
+        window.addDebugLog('✅ Main script loaded', 'success');
+
+        // Detect Cloudflare tunnel and show warning for Safari users
+        function detectAndWarnCloudflare() {
+            const hostname = window.location.hostname;
+            const isCloudflare = hostname.includes('trycloudflare.com') || hostname.includes('cloudflare') || hostname.includes('.cf');
+            const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+            
+            window.addDebugLog('🌐 Hostname: ' + hostname, 'info');
+            window.addDebugLog('🔍 Cloudflare detected: ' + isCloudflare, isCloudflare ? 'warning' : 'info');
+            window.addDebugLog('🌐 Safari detected: ' + isSafari, isSafari ? 'warning' : 'info');
+            
+            if (isCloudflare) {
+                window.addDebugLog('🚨 CLOUDFLARE TUNNEL DETECTED - Speech API may not work on Safari!', 'error');
+                window.addDebugLog('💡 Use Chrome/Edge or access directly without tunnel', 'warning');
+                
+                const warning = document.getElementById('tunnelWarning');
+                if (warning && isSafari) {
+                    warning.style.display = 'block';
+                }
+            }
+        }
+
+        // Run detection
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', detectAndWarnCloudflare);
+        } else {
+            detectAndWarnCloudflare();
+        }
+    </script>
+</body>
+</html>
