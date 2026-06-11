@@ -34,10 +34,21 @@
             console.log(`[${type.toUpperCase()}] ${message}`);
         };
 
-        window.toggleDebugPanel = function() {
+        window.toggleDebugPanel = function(forceOpen) {
             const panel = document.getElementById('debugPanel');
-            if (panel) {
-                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            const toggleButton = document.getElementById('debugToggleButton');
+            if (!panel) {
+                return;
+            }
+
+            const shouldOpen = typeof forceOpen === 'boolean'
+                ? forceOpen
+                : !panel.classList.contains('is-open');
+
+            panel.classList.toggle('is-open', shouldOpen);
+
+            if (toggleButton) {
+                toggleButton.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
             }
         };
 
@@ -47,9 +58,19 @@
             const isDomain = window.location.hostname;
             const isSecure = window.isSecureContext;
             
-            document.getElementById('httpsCheck').textContent = isHttps ? '✅ HTTPS' : '❌ HTTP';
-            document.getElementById('domainCheck').textContent = isDomain || 'localhost';
-            document.getElementById('secureCheck').textContent = isSecure ? '✅ Secure' : '❌ Not Secure';
+            const httpsElement = document.getElementById('httpsCheck');
+            const domainElement = document.getElementById('domainCheck');
+            const secureElement = document.getElementById('secureCheck');
+
+            if (httpsElement) {
+                httpsElement.textContent = isHttps ? 'HTTPS' : 'HTTP';
+            }
+            if (domainElement) {
+                domainElement.textContent = isDomain || 'localhost';
+            }
+            if (secureElement) {
+                secureElement.textContent = isSecure ? 'Secure' : 'Not Secure';
+            }
             
             window.addDebugLog('📡 Protocol: ' + window.location.protocol, 'info');
             window.addDebugLog('📡 Host: ' + window.location.hostname, 'info');
@@ -87,24 +108,14 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: linear-gradient(135deg, #1e5a7a 0%, #2c7aa5 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
+            min-height: 100svh;
+            color: #333;
         }
 
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            min-height: 100svh;
             background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            padding: 32px 20px 96px;
         }
 
         .search-container {
@@ -113,6 +124,7 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             max-width: 900px;
             width: 100%;
+            margin: 0 auto;
             padding: 40px;
             position: relative;
         }
@@ -253,13 +265,15 @@
 
         /* Status Indicator text */
         .status-text {
-            text-align: center;
+            text-align: left;
             margin-top: 15px;
             font-size: 13px;
             color: var(--mic-active-color);
-            height: 20px;
+            height: auto;
             font-weight: 500;
             min-height: 20px;
+            line-height: 1.45;
+            white-space: pre-line;
         }
 
         /* Bottom Actions */
@@ -326,8 +340,8 @@
         /* Debug Panel */
         .debug-panel {
             position: fixed;
-            bottom: 10px !important;
-            right: 10px !important;
+            right: 16px;
+            bottom: 72px;
             background: #1a1a1a;
             color: #0f0;
             border: 2px solid #0f0;
@@ -340,10 +354,20 @@
             overflow-y: auto;
             font-family: monospace;
             font-size: 11px;
-            z-index: 99999 !important;
+            z-index: 99999;
             box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-            display: block !important;
-            visibility: visible !important;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(12px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+        }
+
+        .debug-panel.is-open {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
         }
 
         .debug-title {
@@ -358,6 +382,26 @@
             position: sticky;
             top: 0;
             background: #1a1a1a;
+        }
+
+        .debug-toggle-button {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 100000;
+            border: none;
+            border-radius: 999px;
+            background: #0d2230;
+            color: #ffffff;
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+            cursor: pointer;
+        }
+
+        .debug-toggle-button:hover {
+            background: #133042;
         }
 
         .debug-close {
@@ -499,12 +543,17 @@
         }
 
         @media (max-width: 768px) {
+            .modal-overlay {
+                padding: 16px 12px 88px;
+            }
+
             .search-container {
-                padding: 30px 20px;
+                padding: 24px 16px;
+                border-radius: 0;
             }
 
             .filters-grid {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                grid-template-columns: 1fr;
             }
 
             .form-actions {
@@ -516,8 +565,25 @@
             }
 
             .debug-panel {
-                max-width: 320px;
+                right: 12px;
+                left: 12px;
+                bottom: 76px;
+                width: auto;
+                max-width: none;
+                max-height: 48svh;
                 font-size: 10px;
+            }
+
+            .debug-toggle-button {
+                right: 12px;
+                bottom: 12px;
+                padding: 12px 14px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .modal-overlay {
+                display: block;
             }
         }
     </style>
@@ -675,11 +741,14 @@
         </div>
     </div>
 
-    <!-- Debug Panel - ALWAYS VISIBLE -->
-    <div id="debugPanel" class="debug-panel" style="display: block !important;">
+    <button id="debugToggleButton" class="debug-toggle-button" type="button" onclick="window.toggleDebugPanel()" aria-controls="debugPanel" aria-expanded="false">
+        Open Debug Console
+    </button>
+
+    <div id="debugPanel" class="debug-panel" aria-hidden="false">
         <div class="debug-title">
             🐛 DEBUG CONSOLE
-            <span class="debug-close" onclick="window.toggleDebugPanel()" style="cursor: pointer; user-select: none;">✕</span>
+            <button type="button" class="debug-close" onclick="window.toggleDebugPanel(false)" aria-label="Close debug console">✕</button>
         </div>
         <div id="debugLogs" class="debug-logs-container" style="background: #1a1a1a; color: #0f0;"></div>
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #0f0; font-size: 10px; color: #ffd700;">
@@ -759,6 +828,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             window.addDebugLog('✅ DOMContentLoaded fired', 'success');
+            window.checkSecurityContext();
             
             const locationInput = document.getElementById('locationInput');
             const searchInput = document.getElementById('searchInput');
