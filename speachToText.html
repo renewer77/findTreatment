@@ -195,6 +195,12 @@
             fill: currentColor;
         }
 
+        .mic-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+            background-color: rgba(0, 0, 0, 0.06);
+        }
+
         /* Active Listening State */
         .mic-button.listening {
             animation: pulse 1.5s infinite;
@@ -417,6 +423,81 @@
             margin-bottom: 4px;
         }
 
+        .speech-help-panel {
+            display: none;
+            margin-bottom: 24px;
+            border: 1px solid #f0c36d;
+            border-radius: 8px;
+            background: #fff8e8;
+            color: #5b4a1b;
+            overflow: hidden;
+        }
+
+        .speech-help-panel.active {
+            display: block;
+        }
+
+        .speech-help-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(91, 74, 27, 0.15);
+            background: rgba(240, 195, 109, 0.18);
+        }
+
+        .speech-help-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .speech-help-summary {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .speech-help-details {
+            padding: 0 16px 16px;
+        }
+
+        .speech-help-details summary {
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding: 12px 0;
+        }
+
+        .speech-help-content {
+            display: grid;
+            gap: 16px;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .speech-help-section {
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(91, 74, 27, 0.12);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .speech-help-section h3 {
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: #4a3d19;
+        }
+
+        .speech-help-section p {
+            margin-bottom: 6px;
+        }
+
+        .speech-help-section ol {
+            margin: 6px 0 0 18px;
+        }
+
+        .speech-help-section li {
+            margin-bottom: 6px;
+        }
+
         @media (max-width: 768px) {
             .search-container {
                 padding: 30px 20px;
@@ -446,6 +527,81 @@
         <div class="search-container">
 
             <h2 class="search-title">Search for Treatment</h2>
+
+            <div id="speechHelpPanel" class="speech-help-panel" aria-live="polite">
+                <div class="speech-help-header">
+                    <div id="speechHelpTitle" class="speech-help-title">Speech recognition needs attention</div>
+                    <div id="speechHelpSummary" class="speech-help-summary">If speech recognition is not working in Safari, review the settings below and then reload the page.</div>
+                </div>
+                <details id="speechHelpDetails" class="speech-help-details">
+                    <summary>Show Safari troubleshooting steps</summary>
+                    <div class="speech-help-content">
+                        <section class="speech-help-section">
+                            <h3>1. Make sure Siri is enabled</h3>
+                            <p><strong>iPhone / iPad</strong></p>
+                            <ol>
+                                <li>Open Settings.</li>
+                                <li>Tap Siri or Apple Intelligence &amp; Siri.</li>
+                                <li>Turn on Talk to Siri, Press Side Button for Siri, and any other Siri options available.</li>
+                            </ol>
+                            <p><strong>Mac</strong></p>
+                            <ol>
+                                <li>Open System Settings.</li>
+                                <li>Select Apple Intelligence &amp; Siri or Siri &amp; Spotlight.</li>
+                                <li>Make sure Siri is enabled.</li>
+                            </ol>
+                        </section>
+                        <section class="speech-help-section">
+                            <h3>2. Make sure Dictation is enabled</h3>
+                            <p><strong>iPhone / iPad</strong></p>
+                            <ol>
+                                <li>Open Settings.</li>
+                                <li>Go to General &rarr; Keyboard.</li>
+                                <li>Scroll down and turn on Enable Dictation.</li>
+                            </ol>
+                            <p><strong>Mac</strong></p>
+                            <ol>
+                                <li>Open System Settings.</li>
+                                <li>Go to Keyboard.</li>
+                                <li>Under Dictation, turn Dictation on and allow any required language downloads.</li>
+                            </ol>
+                        </section>
+                        <section class="speech-help-section">
+                            <h3>3. Allow Safari to access Speech Recognition and the Microphone</h3>
+                            <p><strong>iPhone / iPad</strong></p>
+                            <ol>
+                                <li>Open Settings.</li>
+                                <li>Go to Privacy &amp; Security &rarr; Microphone.</li>
+                                <li>Make sure Safari is enabled.</li>
+                                <li>If Safari is missing, open Safari, revisit this page, and allow microphone access when prompted.</li>
+                            </ol>
+                            <p><strong>Mac</strong></p>
+                            <ol>
+                                <li>Open System Settings.</li>
+                                <li>Go to Privacy &amp; Security &rarr; Microphone and make sure Safari is enabled.</li>
+                                <li>Go to Privacy &amp; Security &rarr; Speech Recognition and make sure Safari is allowed.</li>
+                            </ol>
+                        </section>
+                        <section class="speech-help-section">
+                            <h3>4. Check Safari website permissions on Mac</h3>
+                            <ol>
+                                <li>Open Safari and navigate to this website.</li>
+                                <li>From the Safari menu, select Settings for This Website.</li>
+                                <li>Verify Microphone is set to Allow and any speech-related permissions are allowed.</li>
+                            </ol>
+                        </section>
+                        <section class="speech-help-section">
+                            <h3>5. Restart Safari and reload the page</h3>
+                            <ol>
+                                <li>Close all Safari tabs.</li>
+                                <li>Quit Safari completely.</li>
+                                <li>Reopen Safari.</li>
+                                <li>Reload this page and test speech recognition again.</li>
+                            </ol>
+                        </section>
+                    </div>
+                </details>
+            </div>
 
             <!-- Cloudflare Tunnel Warning for Safari Users -->
             <div id="tunnelWarning" class="cloudflare-warning" style="display: none;">
@@ -552,6 +708,51 @@
         window.addEventListener('error', (event) => {
             window.addDebugLog(`UNCAUGHT ERROR: ${event.message}`, 'error');
         }, true);
+
+        function disableMicButton(button, reason) {
+            button.disabled = true;
+            button.classList.remove('listening');
+            button.title = reason;
+            button.setAttribute('aria-disabled', 'true');
+        }
+
+        function showSpeechHelp(title, summary, shouldOpen) {
+            const panel = document.getElementById('speechHelpPanel');
+            const titleElement = document.getElementById('speechHelpTitle');
+            const summaryElement = document.getElementById('speechHelpSummary');
+            const details = document.getElementById('speechHelpDetails');
+
+            if (!panel || !titleElement || !summaryElement || !details) {
+                return;
+            }
+
+            titleElement.innerText = title;
+            summaryElement.innerText = summary;
+            panel.classList.add('active');
+            details.open = shouldOpen;
+        }
+
+        function getSpeechAccessInstructions() {
+            return 'Speech recognition is disabled in Safari. On iPhone, open Settings > Safari > Access to Speech Recognition, turn it on, then reload this page.';
+        }
+
+        function handleSpeechServiceNotAllowed(button, statusElement, label) {
+            const instructions = getSpeechAccessInstructions();
+            disableMicButton(button, instructions);
+            statusElement.innerText = instructions;
+            showSpeechHelp(
+                'Speech recognition is disabled in Safari settings',
+                'Safari is available on this device, but the system speech-recognition setting is currently off or blocked. Review the setup steps below, then reload the page.',
+                true
+            );
+            window.addDebugLog(`🚫 ${label} speech access disabled by Safari setting`, 'error');
+            window.addDebugLog('ℹ️ In iPhone Settings, enable Safari > Access to Speech Recognition, then reload', 'warning');
+        }
+
+        function handleSpeechPermissionIssue(statusElement, title, summary) {
+            statusElement.innerText = summary;
+            showSpeechHelp(title, summary, true);
+        }
 
         // Track selected filters
         let selectedFilters = [];
@@ -680,16 +881,17 @@
                     let troubleShoot = "";
                     
                     if (event.error === 'service-not-allowed') {
-                        errorMsg = "🔒 Service Not Allowed";
-                        troubleShoot = "This error occurs with Cloudflare tunnels on Safari. Try: 1) Use Chrome/Edge instead, 2) Access directly without tunnel, 3) Check Safari Settings → Privacy → Microphone is enabled for this site";
-                        window.addDebugLog('🚨 SERVICE-NOT-ALLOWED Error detected!', 'error');
-                        window.addDebugLog('ℹ️ This is a known issue with Cloudflare tunnels and Safari', 'warning');
-                        window.addDebugLog('ℹ️ Workaround 1: Try accessing via direct IP or localhost', 'warning');
-                        window.addDebugLog('ℹ️ Workaround 2: Use Chrome/Brave instead of Safari', 'warning');
-                        window.addDebugLog('ℹ️ Workaround 3: Use ngrok tunnel instead of Cloudflare', 'warning');
+                        errorMsg = "🔒 Speech Recognition Disabled";
+                        troubleShoot = getSpeechAccessInstructions();
+                        handleSpeechServiceNotAllowed(micButton, statusText, 'Search');
                     } else if (event.error === 'not-allowed') {
                         errorMsg = "🔒 Microphone Permission Denied";
                         troubleShoot = "Microphone access was blocked. Check Settings → Privacy → Microphone";
+                        handleSpeechPermissionIssue(
+                            statusText,
+                            'Microphone permission is blocked',
+                            'Safari cannot capture audio right now. Check Safari microphone permission in iPhone, iPad, or Mac settings, then reload the page.'
+                        );
                         window.addDebugLog('🔒 Microphone permission denied by user', 'error');
                     } else if (event.error === 'no-speech') {
                         errorMsg = "🔇 No Speech Detected";
@@ -702,6 +904,11 @@
                     } else if (event.error === 'not-supported') {
                         errorMsg = "❌ Not Supported";
                         troubleShoot = "Your browser doesn't support Speech Recognition. Try Chrome, Edge, Safari, or Firefox.";
+                        showSpeechHelp(
+                            'Speech recognition is not supported in this browser',
+                            'This browser exposes no Speech Recognition API. Try Safari, Chrome, Edge, or Firefox on a compatible device.',
+                            false
+                        );
                         window.addDebugLog('❌ Speech Recognition not supported in this browser', 'error');
                     } else if (event.error === 'aborted') {
                         errorMsg = "⏹️ Aborted";
@@ -713,7 +920,9 @@
                         window.addDebugLog('⚠️ Unknown error: ' + event.error, 'error');
                     }
                     
-                    statusText.innerText = errorMsg + "\n" + troubleShoot;
+                    if (event.error !== 'service-not-allowed') {
+                        statusText.innerText = errorMsg + "\n" + troubleShoot;
+                    }
                 };
             } catch (e) {
                 window.addDebugLog('❌ ERROR creating search recognition: ' + e.message, 'error');
@@ -793,13 +1002,17 @@
                     let troubleShoot = "";
                     
                     if (event.error === 'service-not-allowed') {
-                        errorMsg = "🔒 Service Not Allowed";
-                        troubleShoot = "Cloudflare tunnel + Safari issue. Try Chrome or direct access.";
-                        window.addDebugLog('🚨 SERVICE-NOT-ALLOWED Error detected!', 'error');
-                        window.addDebugLog('ℹ️ This is a known issue with Cloudflare tunnels and Safari', 'warning');
+                        errorMsg = "🔒 Speech Recognition Disabled";
+                        troubleShoot = getSpeechAccessInstructions();
+                        handleSpeechServiceNotAllowed(locationMicButton, locationStatus, 'Location');
                     } else if (event.error === 'not-allowed') {
                         errorMsg = "🔒 Permission Denied";
                         troubleShoot = "Check microphone permissions in Settings.";
+                        handleSpeechPermissionIssue(
+                            locationStatus,
+                            'Microphone permission is blocked',
+                            'Safari cannot capture audio right now. Check Safari microphone permission in iPhone, iPad, or Mac settings, then reload the page.'
+                        );
                     } else if (event.error === 'no-speech') {
                         errorMsg = "🔇 No Speech Detected";
                         troubleShoot = "Try speaking louder or closer to the mic.";
@@ -811,7 +1024,9 @@
                         troubleShoot = "An error occurred. Try again.";
                     }
                     
-                    locationStatus.innerText = errorMsg + "\n" + troubleShoot;
+                    if (event.error !== 'service-not-allowed') {
+                        locationStatus.innerText = errorMsg + "\n" + troubleShoot;
+                    }
                 };
             } catch (e) {
                 window.addDebugLog('❌ ERROR creating location recognition: ' + e.message, 'error');
