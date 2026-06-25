@@ -4,8 +4,9 @@
   "description": "Speech-to-Text prototype website for Find Treatment application",
   "main": "index.html",
   "scripts": {
-    "start": "http-server -p 8000 -o",
-    "serve": "http-server"
+    "start": "node server.js",
+    "serve": "node server.js",
+    "batch:test": "node batch-bedrock-test.js"
   },
   "keywords": [
     "speech-recognition",
@@ -15,7 +16,5 @@
   ],
   "author": "",
   "license": "MIT",
-  "devDependencies": {
-    "http-server": "^14.1.1"
-  }
+  "dependencies": {}
 }

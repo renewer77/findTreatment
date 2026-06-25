@@ -276,6 +276,47 @@
             white-space: pre-line;
         }
 
+        .result-panel {
+            margin-top: 20px;
+            padding: 16px;
+            border: 1px solid #cfe3f1;
+            border-radius: 8px;
+            background: #f8fcff;
+        }
+
+        .result-panel[hidden] {
+            display: none;
+        }
+
+        .result-panel__title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .result-panel__meta {
+            font-size: 12px;
+            color: #5c7280;
+            margin-bottom: 10px;
+        }
+
+        .result-panel__text {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 12px;
+            color: #163041;
+            line-height: 1.5;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.65;
+            cursor: progress;
+            box-shadow: none;
+        }
+
         /* Bottom Actions */
         .form-actions {
             display: flex;
@@ -736,7 +777,13 @@
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="advancedSearch()">Advanced Search Options</button>
                 <button type="button" class="btn btn-secondary" onclick="closeSearch()">Close</button>
-                <button type="button" class="btn btn-primary" onclick="submitSearch()">Submit</button>
+                <button type="button" class="btn btn-primary" id="submitButton" onclick="submitSearch()">Submit</button>
+            </div>
+
+            <div id="bedrockResultPanel" class="result-panel" hidden>
+                <div class="result-panel__title">AWS Bedrock mapping</div>
+                <div id="bedrockResultMeta" class="result-panel__meta"></div>
+                <pre id="bedrockResultText" class="result-panel__text"></pre>
             </div>
         </div>
     </div>
@@ -1106,16 +1153,49 @@
         });
 
         // Form action handlers
+        function setSubmitLoading(isLoading) {
+            const submitButton = document.getElementById('submitButton');
+
+            if (!submitButton) {
+                return;
+            }
+
+            submitButton.disabled = isLoading;
+            submitButton.textContent = isLoading ? 'Submitting...' : 'Submit';
+        }
+
+        function showBedrockResult(metaText, bodyText) {
+            const panel = document.getElementById('bedrockResultPanel');
+            const meta = document.getElementById('bedrockResultMeta');
+            const text = document.getElementById('bedrockResultText');
+
+            if (!panel || !meta || !text) {
+                return;
+            }
+
+            meta.textContent = metaText;
+            text.textContent = bodyText;
+            panel.hidden = false;
+        }
+
+        function hideBedrockResult() {
+            const panel = document.getElementById('bedrockResultPanel');
+
+            if (panel) {
+                panel.hidden = true;
+            }
+        }
+
         function submitSearch() {
             const location = document.getElementById('locationInput').value.trim();
             const searchTerm = document.getElementById('searchInput').value.trim();
 
             window.addDebugLog('📤 Submit - Loc: ' + location + ', Term: ' + searchTerm, 'info');
 
-            if (!location) {
-                alert('Please enter a location.');
-                return;
-            }
+            //if (!location) {
+             //   alert('Please enter a location.');
+            //    return;
+            //}
 
             const searchData = {
                 location: location,
@@ -1123,8 +1203,46 @@
                 filters: selectedFilters
             };
 
+            hideBedrockResult();
+            setSubmitLoading(true);
             window.addDebugLog('📤 Submitted: ' + JSON.stringify(searchData), 'success');
-            alert('Search submitted!\nLocation: ' + location + '\nSearch: ' + searchTerm + '\nFilters: ' + selectedFilters.join(', '));
+            window.addDebugLog('🤖 Calling Bedrock mapping endpoint...', 'info');
+
+            fetch('/api/bedrock/map-question', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(searchData)
+            })
+                .then(async (response) => {
+                    const payload = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        throw new Error(payload.error || 'Bedrock request failed');
+                    }
+
+                    return payload;
+                })
+                .then((payload) => {
+                    const keywords = Array.isArray(payload.keywords) ? payload.keywords : [];
+                    const rawText = payload.rawText || JSON.stringify(keywords);
+                    const metaText = 'Model: ' + (payload.modelId || 'unknown') + ' | Region: ' + (payload.region || 'unknown');
+
+                    window.addDebugLog('✅ Bedrock response received', 'success');
+                    window.addDebugLog('🧠 Keywords: ' + JSON.stringify(keywords), 'info');
+
+                    showBedrockResult(metaText, rawText);
+                })
+                .catch((error) => {
+                    const errorText = error && error.message ? error.message : 'Unknown Bedrock error';
+
+                    window.addDebugLog('❌ Bedrock submit failed: ' + errorText, 'error');
+                    showBedrockResult('Request failed', errorText + '\n\nCheck AWS credentials, region, and model access on the local server.');
+                })
+                .finally(() => {
+                    setSubmitLoading(false);
+                });
         }
 
         function advancedSearch() {
