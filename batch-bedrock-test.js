@@ -420,7 +420,28 @@ function calculateCost(usage, modelId) {
     'us.anthropic.claude-haiku-4-5-20251001-v1:0': {
       input: 1.0/ 1000000,
       output: 5.0/ 1000000
+    },
+    'us.amazon.nova-2-lite-v1:0': {
+      input: 0.30 / 1000000,
+      output: 2.50/ 1000000
+    },
+    'us.amazon.nova-pro-v1:0': {
+      input: 1.25 / 1000000,
+      output: 10.0 / 1000000
+    },
+    'amazon.nova-micro-v1:0': {
+      input: 0.035 / 1000000,
+      output: 0.14/ 1000000
+    },
+    'google.gemma-3-12b-it': {
+      input: 0.09 / 1000000,
+      output: 0.29 / 1000000
+    },
+    'google.gemma-3-27b-it': {
+      input: 0.23 / 1000000,
+      output: 0.38 / 1000000
     }
+
   };
 
   const modelPricing = pricing[modelId] || {
@@ -712,6 +733,7 @@ async function run() {
       let reasoning = '';
       try {
         const isAnthropicModel = /anthropic/i.test(modelId);
+        const isAmazonNovaModel = /^us.amazon\.nova-/i.test(modelId);
         const requestPayload = isAnthropicModel
           ? {
               system: promptText,
@@ -722,6 +744,25 @@ async function run() {
               temperature: 0,
               anthropic_version: 'bedrock-2023-05-31'
             }
+          : isAmazonNovaModel
+            ? {
+                system: [
+                  { text: promptText }
+                ],
+                messages: [
+                  {
+                    role: 'user',
+                    content: [
+                      { text: q.question }
+                    ]
+                  }
+                ],
+                inferenceConfig: {
+                  maxTokens: maxTokens,
+                  temperature: 0,
+                  topP: 0.1,
+                }
+              }
           : {
               model: modelId,
               messages: [

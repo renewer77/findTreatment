@@ -25,4 +25,4 @@ Context matches: Implied services or treatments
 Exclude: Weak associations or tangential connections
 EXAMPLE: Customer Question: "I'm interested in inpatient rehab immediately for alcohol and substance abuse"
 
-<reasoning>All four keywords directly correspond to explicit or implied treatment needs mentioned in the question </reasoning> <output> ["SA", "DT", "HIT", "HI"] </output> ``` </output>
+<reasoning>All four keywords directly correspond to explicit or implied treatment needs mentioned in the question </reasoning> <output> ["SA", "DT", "HIT", "HI"] </output>
