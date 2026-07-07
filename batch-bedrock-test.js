@@ -421,6 +421,11 @@ function calculateCost(usage, modelId) {
       input: 1.0/ 1000000,
       output: 5.0/ 1000000
     },
+    'us.anthropic.claude-sonnet-5': {
+      input: 2.00 / 1000000,
+      output: 10.00/ 1000000  
+    },
+
     'us.amazon.nova-2-lite-v1:0': {
       input: 0.30 / 1000000,
       output: 2.50/ 1000000
@@ -429,9 +434,13 @@ function calculateCost(usage, modelId) {
       input: 1.25 / 1000000,
       output: 10.0 / 1000000
     },
-    'amazon.nova-micro-v1:0': {
+    'us.amazon.nova-micro-v1:0': {
       input: 0.035 / 1000000,
       output: 0.14/ 1000000
+    },
+    'us.amazon.nova-premier-v1:0': {
+      input: 2.50 / 1000000,
+      output: 12.50 / 1000000
     },
     'google.gemma-3-12b-it': {
       input: 0.09 / 1000000,
@@ -502,6 +511,112 @@ function mapOutputToFriendlyText(outputText, keywordMap) {
     .filter(Boolean);
 
   return mapped.join('; ');
+}
+
+function extractComparableOutputKeys(outputText) {
+  if (!outputText || typeof outputText !== 'string') {
+    return [];
+  }
+
+  const cleaned = outputText
+    .replace(/<output>/ig, '')
+    .replace(/<\/output>/ig, '')
+    .trim();
+
+  if (!cleaned) {
+    return [];
+  }
+
+  let values = [];
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      values = parsed;
+    } else if (parsed && Array.isArray(parsed.keywords)) {
+      values = parsed.keywords;
+    }
+  } catch (error) {
+    values = cleaned.split(/[;,\n\r]+/);
+  }
+
+  return Array.from(
+    new Set(
+      values
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter(Boolean)
+    )
+  ).sort();
+}
+
+function calculateOutputSimilarityPercent(leftOutputText, rightOutputText) {
+  const leftKeys = extractComparableOutputKeys(leftOutputText);
+  const rightKeys = extractComparableOutputKeys(rightOutputText);
+
+  if (leftKeys.length === 0 && rightKeys.length === 0) {
+    return null;
+  }
+
+  const leftSet = new Set(leftKeys);
+  const rightSet = new Set(rightKeys);
+
+  let intersectionCount = 0;
+  leftSet.forEach((key) => {
+    if (rightSet.has(key)) {
+      intersectionCount += 1;
+    }
+  });
+
+  const unionCount = new Set([...leftKeys, ...rightKeys]).size;
+  if (unionCount === 0) {
+    return null;
+  }
+
+  return Number(((intersectionCount / unionCount) * 100).toFixed(2));
+}
+
+function formatSimilarityMap(similarityByModel) {
+  const modelIds = Object.keys(similarityByModel).sort();
+  if (modelIds.length === 0) {
+    return '';
+  }
+
+  return modelIds
+    .map((modelId) => `${modelId}: ${similarityByModel[modelId].toFixed(2)}%`)
+    .join('; ');
+}
+
+function addSimilarityComparisons(resultRows) {
+  const rowsByQuestion = {};
+
+  resultRows.forEach((row) => {
+    const questionKey = `${row.question_id}::${row.question_row}`;
+    if (!rowsByQuestion[questionKey]) {
+      rowsByQuestion[questionKey] = [];
+    }
+    rowsByQuestion[questionKey].push(row);
+  });
+
+  Object.values(rowsByQuestion).forEach((rows) => {
+    rows.forEach((row, rowIndex) => {
+      const similarityByModel = {};
+
+      rows.forEach((otherRow, otherIndex) => {
+        if (rowIndex === otherIndex) {
+          return;
+        }
+
+        const similarityPercent = calculateOutputSimilarityPercent(row.output, otherRow.output);
+        if (similarityPercent === null) {
+          return;
+        }
+
+        similarityByModel[otherRow.model_id] = similarityPercent;
+      });
+
+      row.output_similarity_by_model = similarityByModel;
+      row.output_similarity_summary = formatSimilarityMap(similarityByModel);
+    });
+  });
 }
 
 function loadQuestions(filePath, questionColumn) {
@@ -644,6 +759,71 @@ function parseArgs(argv) {
   return args;
 }
 
+function toModelOutputNameSegment(modelId) {
+  const normalized = String(modelId || '').trim();
+  if (!normalized) {
+    return 'model';
+  }
+
+  const withoutNamespace = normalized.includes('.')
+    ? normalized.split('.').slice(1).join('.')
+    : normalized;
+  const withoutVersion = withoutNamespace.replace(/-v\d+(?::\d+)?$/i, '');
+  const baseName = withoutVersion.split('.').pop() || withoutVersion;
+  const tokens = baseName
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((token) => token.toLowerCase());
+
+  if (tokens.length === 0) {
+    return 'model';
+  }
+
+  return tokens
+    .map((token, index) => {
+      if (index === 0) {
+        return token;
+      }
+      if (/^\d+$/.test(tokens[index - 1])) {
+        return token;
+      }
+      return token.charAt(0).toUpperCase() + token.slice(1);
+    })
+    .join('');
+}
+
+function toPromptOutputNameSegment(promptFilePath) {
+  const promptName = path.parse(String(promptFilePath || '')).name;
+  const normalizedPromptName = promptName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2');
+  const tokens = normalizedPromptName
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((token) => token.toLowerCase());
+
+  if (tokens.length === 0) {
+    return 'prompt';
+  }
+
+  return tokens
+    .map((token, index) => {
+      if (index === 0) {
+        return token;
+      }
+      return token.charAt(0).toUpperCase() + token.slice(1);
+    })
+    .join('');
+}
+
+function buildDefaultOutputPath(models, promptFilePath) {
+  const resultsDir = path.join(ROOT_DIR, 'results');
+  const modelSegment = models.map(toModelOutputNameSegment).join('-');
+  const promptSegment = toPromptOutputNameSegment(promptFilePath);
+  const fileName = `results-${modelSegment}-${promptSegment}.csv`;
+  return path.join(resultsDir, fileName);
+}
+
 function usage() {
   console.log('Usage:');
   console.log('node batch-bedrock-test.js --questions questions.csv --models model1,model2 [options]');
@@ -651,13 +831,14 @@ function usage() {
   console.log('Options:');
   console.log('--questions        Required. Path to CSV file with questions');
   console.log('--models           Required. Comma-separated model ids');
-  console.log('--out              Optional. Output CSV path (default: batch-results.csv)');
+  console.log('--out              Optional. Output CSV path (default: results/results-<models>-<prompt>.csv)');
   console.log('--region           Optional. AWS region (default: AWS_REGION or us-east-1)');
   console.log('--promptFile       Optional. Prompt file path (default: PromptNoReasoning.txt)');
   console.log('--questionColumn   Optional. CSV column name for question text (default: question)');
   console.log('--maxTokens        Optional. max_tokens for request (default: 2000)');
   console.log('--signingService   Optional. bedrock-runtime or bedrock (default: BEDROCK_SIGNING_SERVICE or bedrock-runtime)');
   console.log('--limit            Optional. Process only first N questions (e.g., --limit 10)');
+  console.log('--json             Optional. Also write JSON results alongside CSV');
 }
 
 async function run() {
@@ -669,8 +850,6 @@ async function run() {
   }
 
   const questionsPath = path.resolve(ROOT_DIR, args.questions);
-  const outputPath = path.resolve(ROOT_DIR, args.out || 'batch-results.csv');
-  const outputJsonPath = outputPath.replace(/\.csv$/i, '.json');
   const promptPath = path.resolve(ROOT_DIR, args.promptFile || 'PromptNoReasoning.txt');
   const keywordMapPath = path.resolve(ROOT_DIR, 'serviceCategories_kvd.json');
   const questionColumn = args.questionColumn || 'question';
@@ -678,7 +857,11 @@ async function run() {
   const maxTokens = Number(args.maxTokens || 2000);
   const signingService = args.signingService || process.env.BEDROCK_SIGNING_SERVICE || 'bedrock-runtime';
   const limit = args.limit ? Number(args.limit) : null;
+  const writeJsonOutput = args.json === 'true';
   const models = args.models.split(',').map((x) => x.trim()).filter(Boolean);
+
+  const outputPath = path.resolve(ROOT_DIR, args.out || buildDefaultOutputPath(models, promptPath));
+  const outputJsonPath = outputPath.replace(/\.csv$/i, '.json');
 
   if (!fs.existsSync(questionsPath)) {
     throw new Error(`Questions file not found: ${questionsPath}`);
@@ -699,6 +882,8 @@ async function run() {
   if (limit && limit > 0 && limit < questions.length) {
     questions = questions.slice(0, limit);
   }
+
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
   console.log(`Questions: ${questions.length}`);
   console.log(`Models: ${models.join(', ')}`);
@@ -733,6 +918,7 @@ async function run() {
       let reasoning = '';
       try {
         const isAnthropicModel = /anthropic/i.test(modelId);
+        const usesDeprecatedAnthropicTemperature = /anthropic\.claude-sonnet-5/i.test(modelId);
         const isAmazonNovaModel = /^us.amazon\.nova-/i.test(modelId);
         const requestPayload = isAnthropicModel
           ? {
@@ -741,7 +927,7 @@ async function run() {
                 { role: 'user', content: q.question }
               ],
               max_tokens: maxTokens,
-              temperature: 0,
+              ...(usesDeprecatedAnthropicTemperature ? {} : { temperature: 0 }),
               anthropic_version: 'bedrock-2023-05-31'
             }
           : isAmazonNovaModel
@@ -826,6 +1012,8 @@ async function run() {
     }
   }
 
+  addSimilarityComparisons(resultRows);
+
   const csvRows = [
     [
       'timestamp_utc',
@@ -840,6 +1028,7 @@ async function run() {
       'totalTokens',
       'totalCost',
       'output',
+      'output_similarity_by_model',
       'user_friendly_output',
       'error',
       'reasoning',
@@ -860,6 +1049,7 @@ async function run() {
       row.totalTokens,
       row.totalCost,
       row.output,
+      row.output_similarity_summary,
       row.user_friendly_output,
       row.error,
       row.reasoning
@@ -867,7 +1057,9 @@ async function run() {
   });
 
   writeCsv(outputPath, csvRows);
-  fs.writeFileSync(outputJsonPath, JSON.stringify(resultRows, null, 2), 'utf8');
+  if (writeJsonOutput) {
+    fs.writeFileSync(outputJsonPath, JSON.stringify(resultRows, null, 2), 'utf8');
+  }
 
   const summaryByModel = {};
   resultRows.forEach((row) => {
@@ -894,7 +1086,9 @@ async function run() {
 
   console.log('');
   console.log(`Results CSV: ${outputPath}`);
-  console.log(`Results JSON: ${outputJsonPath}`);
+  if (writeJsonOutput) {
+    console.log(`Results JSON: ${outputJsonPath}`);
+  }
 }
 
 run().catch((error) => {
