@@ -1,0 +1,12 @@
+I would exclude from the prompt:
+30+ psychiatric medications (Haloperidol, Clozapine, Olanzapine, etc.)
+Accreditation (CARF, NCQA, Joint Commission)
+Ownership types (Private nonprofit, State Government, Federal Government)
+Funding sources
+Laboratory tests
+Vaccinations
+Smoking/vaping policies
+Internal prescribing relationship codes
+Individual evidence-based therapies (CBT, DBT, EMDR, etc.), unless users frequently search specifically for them.
+
+This trimmed list is about 50 keywords and is much more aligned with how people naturally ask for treatment. It should significantly improve classification accuracy while reducing prompt length and token usage.

@@ -421,6 +421,10 @@ function calculateCost(usage, modelId) {
       input: 1.0/ 1000000,
       output: 5.0/ 1000000
     },
+    'us.anthropic.claude-sonnet-4-5-20250929-v1:0':{
+      input: 3.00 / 1000000,
+      output: 15.00/ 1000000    
+    },
     'us.anthropic.claude-sonnet-5': {
       input: 2.00 / 1000000,
       output: 10.00/ 1000000  
@@ -474,7 +478,7 @@ function mapOutputToFriendlyText(outputText, keywordMap) {
     return '';
   }
 
-  const cleaned = outputText
+  const cleaned = stripJsonCodeFence(outputText)
     .replace(/<output>/ig, '')
     .replace(/<\/output>/ig, '')
     .trim();
@@ -518,7 +522,7 @@ function extractComparableOutputKeys(outputText) {
     return [];
   }
 
-  const cleaned = outputText
+  const cleaned = stripJsonCodeFence(outputText)
     .replace(/<output>/ig, '')
     .replace(/<\/output>/ig, '')
     .trim();
@@ -572,6 +576,20 @@ function calculateOutputSimilarityPercent(leftOutputText, rightOutputText) {
   }
 
   return Number(((intersectionCount / unionCount) * 100).toFixed(2));
+}
+
+function stripJsonCodeFence(text) {
+  if (typeof text !== 'string') {
+    return '';
+  }
+
+  const trimmed = text.trim();
+  const fencedMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fencedMatch) {
+    return fencedMatch[1].trim();
+  }
+
+  return trimmed;
 }
 
 function formatSimilarityMap(similarityByModel) {
@@ -725,18 +743,18 @@ function extractModelText(parsedResponse) {
 function parseReasoningAndOutput(fullText) {
   const result = {
     reasoning: '',
-    output: fullText
+    output: stripJsonCodeFence(fullText)
   };
 
   const reasoningMatch = fullText.match(/<reasoning>(.*?)<\/reasoning>/is);
   if (reasoningMatch) {
     result.reasoning = reasoningMatch[1].trim();
-    result.output = fullText.replace(/<reasoning>.*?<\/reasoning>/is, '').trim();
+    result.output = stripJsonCodeFence(fullText.replace(/<reasoning>.*?<\/reasoning>/is, '').trim());
   }
 
   const outputMatch = result.output.match(/<output>(.*?)<\/output>/is);
   if (outputMatch) {
-    result.output = outputMatch[1].trim();
+    result.output = stripJsonCodeFence(outputMatch[1].trim());
   }
 
   return result;

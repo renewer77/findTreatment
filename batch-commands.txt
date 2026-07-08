@@ -1,0 +1,8 @@
+npm run batch:test -- --questions questions.example.csv --models us.amazon.nova-2-lite-v1:0,us.amazon.nova-pro-v1:0--maxTokens 8132 --limit 56 --promptFile PromptGPT.txt
+
+npm run batch:test -- --questions questions.example.csv --models us.anthropic.claude-haiku-4-5-20251001-v1:0,us.anthropic.claude-sonnet-5 --maxTokens 8132 --limit 1 --promptFile PromptMed.txt
+
+ 'openai.gpt-oss-20b-1:0'    'openai.gpt-oss-120b-1:0'    'us.anthropic.claude-haiku-4-5-20251001-v1:0'    'us.anthropic.claude-sonnet-5'    'us.amazon.nova-2-lite-v1:0'    'us.amazon.nova-pro-v1:0'    'us.amazon.nova-micro-v1:0'    'us.amazon.nova-premier-v1:0'    'google.gemma-3-12b-it'    'google.gemma-3-27b-it'
+
+
+npm run batch:test -- --questions questions.example.csv --models us.anthropic.claude-haiku-4-5-20251001-v1:0,us.amazon.nova-pro-v1:0 --maxTokens 8132 --limit 56 --promptFile PromptGPT.txt
